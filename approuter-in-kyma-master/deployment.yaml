@@ -1,0 +1,111 @@
+
+
+apiVersion: services.cloud.sap.com/v1alpha1
+kind: ServiceBinding
+metadata:
+  name: routerauth-binding
+  namespace: YOUR_NAMESPACE
+spec:
+  serviceInstanceName: garouter-uaa
+  secretName: routerauth-binding
+  externalName: garouter-uaa
+---
+apiVersion: services.cloud.sap.com/v1alpha1
+kind: ServiceBinding
+metadata:
+  name: garouterdestination-binding
+  namespace: YOUR_NAMESPACE
+spec:
+  serviceInstanceName: destination-service
+  secretName: garouterdestination-binding
+  externalName: destination-service
+  
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: garouter
+  namespace: YOUR_NAMESPACE
+  labels:
+    app: garouter
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: garouter
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: garouter
+        version: v1
+    spec:
+      containers:
+        - name: garouter
+          image: YOUR_USER/approuterinkyma:latest
+          imagePullPolicy: Always
+          resources:
+              limits:
+                cpu: "250m"
+                memory: "128Mi"
+              requests:
+                cpu: "250m"
+                memory: "128Mi"
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: garouter-uaa
+              mountPath: "/etc/secrets/sapcp/xsuaa/garouter-uaa"
+              readOnly: true
+            - name: destination-service
+              mountPath: "/etc/secrets/sapcp/destination/destination-service"
+              readOnly: true
+      volumes:
+        - name: garouter-uaa
+          secret:
+            secretName: routerauth-binding
+        - name: destination-service
+          secret:
+            secretName: garouterdestination-binding
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: garouter
+  namespace: YOUR_NAMESPACE
+  labels:
+    app: garouter
+    service: garouter
+spec:
+  ports:
+    - port: 5000
+      name: http
+  selector:
+    app: garouter
+
+---
+apiVersion: gateway.kyma-project.io/v1beta1
+kind: APIRule
+metadata:
+  name: garouter
+  namespace: YOUR_NAMESPACE
+spec:
+  gateway: kyma-gateway.kyma-system.svc.cluster.local  
+  host: garouter.CLUSTER_DOMAIN
+  service:
+    name: garouter
+    port: 5000
+  rules:
+    - accessStrategies:
+        - config: {}
+          handler: allow
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - HEAD
+      path: /.*
+  

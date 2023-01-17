@@ -1,0 +1,29 @@
+{
+    "welcomeFile": "index.html",
+    "authenticationMethod": "route",
+    "logout": {
+        "logoutEndpoint": "/app-logout",
+        "logoutPage": "/"
+    },
+    "routes": [
+        {
+            "source": "^/user-api(.*)",
+            "target": "$1",
+            "service": "sap-approuter-userapi",
+            "authenticationType": "xsuaa",
+            "scope": "$XSAPPNAME.admin"
+        },
+        {
+            "source": "^/destinations/PurchaseRequisition/(.*)$",
+            "target": "$1",
+            "destination": "PurchaseRequisition",
+            "authenticationType": "xsuaa"
+        },
+        {
+            "source": "^/(.*)",
+            "authenticationType": "xsuaa",
+            "localDir": "resources"
+        }
+  
+    ]
+}
